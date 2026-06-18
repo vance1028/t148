@@ -1,6 +1,6 @@
 'use strict';
 
-const { createApp } = require('./app');
+const { createApp, ensureRuntimeInit } = require('./app');
 const { getPool, ensureSchema, waitForDb } = require('./db');
 const { seed } = require('./seed');
 
@@ -15,6 +15,7 @@ async function main() {
     // eslint-disable-next-line no-console
     console.log('种子数据:', result.skipped ? '已存在，跳过' : JSON.stringify(result));
   }
+  await ensureRuntimeInit();
   const app = createApp();
   app.listen(PORT, () => {
     // eslint-disable-next-line no-console

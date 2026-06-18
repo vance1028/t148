@@ -9,7 +9,13 @@ const lotsRouter = require('./routes/lots');
 const spacesRouter = require('./routes/spaces');
 const vehiclesRouter = require('./routes/vehicles');
 const sessionsRouter = require('./routes/sessions');
+const debtsRouter = require('./routes/debts');
+const riskRouter = require('./routes/risk');
+const creditRouter = require('./routes/credit');
 const { sendError } = require('./utils/http');
+const debtService = require('./services/debtService');
+const riskService = require('./services/riskService');
+const creditService = require('./services/creditService');
 
 /** 创建 Express 应用。数据库连接与种子由调用方准备。 */
 function createApp() {
@@ -27,6 +33,9 @@ function createApp() {
   app.use('/api/spaces', spacesRouter);
   app.use('/api/vehicles', vehiclesRouter);
   app.use('/api/sessions', sessionsRouter);
+  app.use('/api/debts', debtsRouter);
+  app.use('/api/risk', riskRouter);
+  app.use('/api/credit', creditRouter);
 
   app.use((req, res) => sendError(res, 404, '接口不存在'));
 
@@ -46,4 +55,10 @@ function createApp() {
   return app;
 }
 
-module.exports = { createApp };
+async function ensureRuntimeInit() {
+  await debtService.ensureDefaultConfigs();
+  await riskService.ensureDefaultRiskRules();
+  await creditService.ensureDefaultCreditRules();
+}
+
+module.exports = { createApp, ensureRuntimeInit };
