@@ -30,30 +30,25 @@ async function ensureDefaultRiskRules() {
       code: 'BLACKLIST_BLOCK',
       name: '黑名单直接拦截',
       type: 'ENTRY_BLOCK',
+      enabled: true,
       priority: 100,
       condition: { type: 'IN_BLACKLIST', level: ['DANGER', 'SEVERE'] },
       action: { type: 'BLOCK_ENTRY', message: '车辆在黑名单中，禁止入场' },
     },
     {
-      code: 'DEBT_AMOUNT_HIGH',
-      name: '欠费总额过高拦截',
+      code: 'BLACKLIST_REQUIRE_PAY',
+      name: '黑名单限制补缴',
       type: 'ENTRY_BLOCK',
+      enabled: true,
       priority: 80,
-      condition: { type: 'DEBT_AMOUNT', operator: 'GTE', value: 5000 },
-      action: { type: 'BLOCK_ENTRY', message: '累计欠费过高，请先补缴后入场' },
-    },
-    {
-      code: 'DEBT_COUNT_HIGH',
-      name: '欠费次数过多拦截',
-      type: 'ENTRY_BLOCK',
-      priority: 70,
-      condition: { type: 'DEBT_COUNT', operator: 'GTE', value: 3 },
-      action: { type: 'REQUIRE_PAYMENT', message: '欠费次数过多，请先补缴' },
+      condition: { type: 'IN_BLACKLIST', level: ['WARN'] },
+      action: { type: 'REQUIRE_PAYMENT', message: '车辆在限制名单中，请先补缴' },
     },
     {
       code: 'CREDIT_LOW',
       name: '信用分过低限制',
       type: 'ENTRY_BLOCK',
+      enabled: true,
       priority: 60,
       condition: { type: 'CREDIT_LEVEL', levels: ['D', 'E'] },
       action: { type: 'DISABLE_SENSELESS', message: '信用分较低，已禁用无感支付' },
@@ -62,8 +57,12 @@ async function ensureDefaultRiskRules() {
       code: 'DEBT_WARN',
       name: '欠费预警',
       type: 'ENTRY_BLOCK',
+      enabled: true,
       priority: 10,
-      condition: { type: 'DEBT_AMOUNT', operator: 'GTE', value: 1000 },
+      condition: { type: 'AND', conditions: [
+        { type: 'DEBT_AMOUNT', operator: 'GT', value: 0 },
+        { type: 'NOT_IN_BLACKLIST' },
+      ] },
       action: { type: 'WARN', message: '有欠费记录，请及时补缴' },
     },
   ];
@@ -81,6 +80,9 @@ function _evalCondition(cond, ctx) {
       if (!ctx.blacklist) return false;
       if (!cond.level || !cond.level.length) return true;
       return cond.level.includes(ctx.blacklist.level);
+    }
+    case 'NOT_IN_BLACKLIST': {
+      return !ctx.blacklist;
     }
     case 'DEBT_AMOUNT': {
       const v = Number(ctx.debtSummary?.totalRemainingCents || 0);

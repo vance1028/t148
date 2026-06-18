@@ -5,6 +5,7 @@ const { authRequired, requireRole } = require('../auth');
 const { sendData, sendError, parseId } = require('../utils/http');
 const debtStore = require('../data/debtStore');
 const debtService = require('../services/debtService');
+const riskService = require('../services/riskService');
 
 const router = express.Router();
 router.use(authRequired);
@@ -54,6 +55,9 @@ router.post('/pay', requireRole('ADMIN', 'OPERATOR'), async (req, res, next) => 
       debtIds: debtIds || null,
     });
     if (!result.success) return sendError(res, 400, result.message);
+    try {
+      await riskService.refreshBlacklistFromDebts(plateNo, req.user?.id || null);
+    } catch (_) {}
     return sendData(res, 200, result);
   } catch (e) {
     if (e.statusCode) return sendError(res, e.statusCode, e.message);
@@ -74,6 +78,9 @@ router.post('/pay-all', requireRole('ADMIN', 'OPERATOR'), async (req, res, next)
       note: note || '',
     });
     if (!result.success) return sendError(res, 400, result.message);
+    try {
+      await riskService.refreshBlacklistFromDebts(plateNo, req.user?.id || null);
+    } catch (_) {}
     return sendData(res, 200, result);
   } catch (e) {
     if (e.statusCode) return sendError(res, e.statusCode, e.message);
